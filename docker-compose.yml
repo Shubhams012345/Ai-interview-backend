@@ -1,0 +1,122 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: job-platform-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: job-platform-redis
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    env_file:
+      - ./auth-service/.env
+    environment:
+      PORT: 8001
+      MONGO_URI: mongodb://mongo:27017/auth_db
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mongo
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    env_file:
+      - ./user-service/.env
+    environment:
+      PORT: 8002
+      MONGO_URI: mongodb://mongo:27017/user_db
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mongo
+      - redis
+
+  resume-service:
+    build: ./resume-service
+    container_name: resume-service
+    env_file:
+      - ./resume-service/.env
+    environment:
+      PORT: 8003
+      MONGO_URI: mongodb://mongo:27017/resume_db
+    ports:
+      - "8003:8003"
+    depends_on:
+      - mongo
+
+  job-service:
+    build: ./job-service
+    container_name: job-service
+    env_file:
+      - ./job-service/.env
+    environment:
+      PORT: 8004
+      MONGO_URI: mongodb://mongo:27017/job_db
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8004:8004"
+    depends_on:
+      - mongo
+      - redis
+
+  interview-service:
+    build: ./interview-service
+    container_name: interview-service
+    env_file:
+      - ./interview-service/.env
+    environment:
+      PORT: 8005
+      MONGO_URI: mongodb://mongo:27017/interview_db
+    ports:
+      - "8005:8005"
+    depends_on:
+      - mongo
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    env_file:
+      - ./notification-service/.env
+    environment:
+      PORT: 8006
+      MONGO_URI: mongodb://mongo:27017/notification_db
+    ports:
+      - "8006:8006"
+    depends_on:
+      - mongo
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    env_file:
+      - ./api-gateway/.env
+    environment:
+      PORT: 8000
+      AUTH_SERVICE_URL: http://auth-service:8001
+      USER_SERVICE_URL: http://user-service:8002
+      RESUME_SERVICE_URL: http://resume-service:8003
+      JOB_SERVICE_URL: http://job-service:8004
+      INTERVIEW_SERVICE_URL: http://interview-service:8005
+      NOTIFICATION_SERVICE_URL: http://notification-service:8006
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - user-service
+      - resume-service
+      - job-service
+      - interview-service
+      - notification-service
+
+volumes:
+  mongo_data:
